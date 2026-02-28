@@ -20,7 +20,7 @@ export default function MapView() {
   const [home, setHome] = useState<LatLngLiteral | null>(null);
 
   return (
-    <div style={{ height: "100%", width: "100%" }}>
+    <div style={{ height: "100%", width: "100%", position: "relative" }}>
       <MapContainer center={defaultCenter} zoom={12} style={{ height: "100%", width: "100%" }}>
         <TileLayer
           attribution='&copy; OpenStreetMap contributors'
