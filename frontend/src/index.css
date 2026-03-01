@@ -66,3 +66,9 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+
+/* Make the "Analyze with Gemini?" tooltip clickable */
+.leaflet-tooltip.analyze-tooltip {
+  pointer-events: auto;
+}

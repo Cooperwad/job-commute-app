@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Circle, MapContainer, Marker, TileLayer, useMapEvents, Popup, ZoomControl, Polyline } from "react-leaflet";
+import { useEffect, useRef, useMemo, useState } from "react";
+import { Circle, MapContainer, Marker, TileLayer, useMap, useMapEvents, Popup, ZoomControl, Polyline, Tooltip } from "react-leaflet";
 import type { LatLngLiteral } from "leaflet";
 import L from "leaflet";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
@@ -72,6 +72,7 @@ const jobIcon = new L.Icon({
   shadowSize: [41, 41],
 });
 
+
 export type JobDto = {
   id: string;
   title: string;
@@ -91,9 +92,10 @@ function ClickToSetHomePin(props: {
   onPick: (p: LatLngLiteral) => void; 
   onClearSelection: () => void;
   isPopupOpen: boolean;
- }) {
+}) {
   useMapEvents({
     click(e) {
+      
       const target = (e.originalEvent?.target as HTMLElement | null);
 
       if (
@@ -112,6 +114,25 @@ function ClickToSetHomePin(props: {
       props.onClearSelection();
     },
   });
+  return null;
+}
+
+function AutoOpenSelectedJobPopup(props: {
+  selectedJobId: string | null;
+  markerRefs: React.MutableRefObject<Record<string, L.Marker>>;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!props.selectedJobId) return;
+
+    const marker = props.markerRefs.current[props.selectedJobId];
+    if (!marker) return;
+
+    marker.openPopup();
+    map.panTo(marker.getLatLng());
+  }, [props.selectedJobId, map, props.markerRefs]);
+
   return null;
 }
 
@@ -138,9 +159,13 @@ export default function MapView(props: {
     // ADJUST THIS VALUE to change distance of same-position leaflet markers
     return spreadPositions(withCoords, 30);
   }, [props.jobs]);
+  const markerRefs = useRef<Record<string, L.Marker>>({});
 
   const [routeLine, setRouteLine] = useState<[number, number][]>([]);
   const [routeMeta, setRouteMeta] = useState<{ distanceMeters: number; durationSeconds: number } | null>(null);
+
+  
+
 
   useEffect(() => {
     const run = async () => {
@@ -180,6 +205,7 @@ export default function MapView(props: {
     run();
   }, [props.selectedJobId, props.home, props.jobs]);
 
+
   return (
     <div style={{ height: "100%", width: "100%", position: "relative" }}>
       <MapContainer center={center} zoom={12} zoomControl={false} style={{ height: "100%", width: "100%" }}>
@@ -190,6 +216,7 @@ export default function MapView(props: {
         {routeLine.length > 0 && <Polyline positions={routeLine} />}
 
         <ZoomControl position="topright" />
+        <AutoOpenSelectedJobPopup selectedJobId={props.selectedJobId} markerRefs={markerRefs} />
 
         <ClickToSetHomePin 
          onPick={props.onPickHome} 
@@ -231,6 +258,9 @@ export default function MapView(props: {
                     click: () => props.onSelectJob(j.id),
                 }}
                 icon={jobIcon}
+                ref={(ref) => {
+                  if (ref) markerRefs.current[j.id] = ref as unknown as L.Marker;
+                }}
                >
                  <Popup autoClose closeOnClick>
                     <div style={{ maxWidth: 260 }}>
@@ -247,6 +277,7 @@ export default function MapView(props: {
               </Marker>
             ))}
       </MapContainer>
+      
 
       <div
         style={{

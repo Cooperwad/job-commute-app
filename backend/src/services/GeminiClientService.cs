@@ -34,7 +34,7 @@ public class GeminiClient
             generationConfig = new
             {
                 temperature = 0.2,
-                maxOutputTokens = 250
+                maxOutputTokens = 2048 
             }
         };
 

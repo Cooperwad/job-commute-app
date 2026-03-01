@@ -283,44 +283,54 @@ app.MapGet("/api/route", async (
     return Results.Ok(route);
 });
 
-app.MapPost("/api/ai/explain-jobs", async (ExplainJobsRequest req, GeminiClient gemini, CancellationToken ct) =>
+
+app.MapPost("/api/ai/analyze-best", async (AnalyzeBestRequest req, GeminiClient gemini, CancellationToken ct) =>
 {
-    if (req.Selected == null || req.ComparedTo == null)
-        return Results.BadRequest(new { error = "selected and comparedTo are required" });
+    if (req.Jobs == null || req.Jobs.Count == 0)
+        return Results.BadRequest(new { error = "jobs are required" });
 
-    // Keep Gemini grounded. Tell it to only use provided numbers.
-    var prompt =
-$"""
-You are helping a job commute app.
-Compare two jobs for a user based on NET daily value after commute cost.
+    // Limit prompt size
+    var jobs = req.Jobs.Take(25).ToList();
 
-Use ONLY the numbers provided. If salary or net is missing, say it is unknown.
-Write 3-5 bullet points, then one short final sentence.
+    // Pick winner deterministically (more reliable than asking Gemini for an ID)
+    JobForAnalysis winner;
+    var withNet = jobs.Where(j => j.NetDaily.HasValue).ToList();
+    if (withNet.Count > 0)
+        winner = withNet.OrderByDescending(j => j.NetDaily).First();
+    else
+        winner = jobs.OrderBy(j => j.CommuteCostDaily).ThenBy(j => j.DistanceKm).First();
 
-Assumptions:
-- Commute cost is a rough estimate and may differ from real routes.
+    var jobsLines = string.Join("\n", jobs.Select(j =>
+        $"- {j.Id}: {j.Title} @ {j.Company} | distKm:{j.DistanceKm} | commuteDaily:{j.CommuteCostDaily} | salaryAnnual:{j.SalaryAnnual} | netDaily:{j.NetDaily} | predicted:{j.SalaryIsPredicted}"
+    ));
 
-Job A (Selected):
-- Title: {req.Selected.Title}
-- Company: {req.Selected.Company}
-- Distance (km): {req.Selected.DistanceKm}
-- Salary annual (USD): {req.Selected.SalaryAnnual}
-- Commute cost daily (USD): {req.Selected.CommuteCostDaily}
-- Net daily (USD): {req.Selected.NetDaily}
+    var prompt = $@"
+You are a job commute assistant.
 
-Job B (Compared):
-- Title: {req.ComparedTo.Title}
-- Company: {req.ComparedTo.Company}
-- Distance (km): {req.ComparedTo.DistanceKm}
-- Salary annual (USD): {req.ComparedTo.SalaryAnnual}
-- Commute cost daily (USD): {req.ComparedTo.CommuteCostDaily}
-- Net daily (USD): {req.ComparedTo.NetDaily}
+The app already computed commute cost and net daily value.
+Explain why the WINNER is the best choice compared to the other jobs.
 
-Question: Why might Job A be better or worse than Job B for this user?
-""";
+Rules:
+- Use only the data provided.
+- Mention uncertainty if salary is predicted or missing.
+- Output should be 5 to 8 bullet points plus 1 short final sentence.
+
+WINNER:
+- Title: {winner.Title}
+- Company: {winner.Company}
+- DistanceKm: {winner.DistanceKm}
+- CommuteCostDaily: {winner.CommuteCostDaily}
+- SalaryAnnual: {winner.SalaryAnnual}
+- NetDaily: {winner.NetDaily}
+- SalaryIsPredicted: {winner.SalaryIsPredicted}
+
+All jobs considered:
+{jobsLines}
+";
 
     var text = await gemini.GenerateTextAsync(prompt, ct);
-    return Results.Ok(new { text });
+
+    return Results.Ok(new { winnerId = winner.Id, text });
 });
 
 
