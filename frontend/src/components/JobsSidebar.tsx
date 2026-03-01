@@ -9,40 +9,86 @@ export default function JobsSidebar(props: {
   loading: boolean;
   error: string | null;
   onSearch: (what: string, where: string) => void;
+  selectedJobId: string | null;
+  onSelectJob: (id: string) => void;
 }) {
-  const [what, setWhat] = useState("cashier");
-  const [where, setWhere] = useState("Newark, DE");
+  const [what, setWhat] = useState("");
+  const [where, setWhere] = useState("");
+  const [radiusText, setRadiusText] = useState("");
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    boxSizing: "border-box",
+    height: 44,
+    padding: "0 14px",
+    borderRadius: 12,
+    border: "1px solid #ddd",
+    outline: "none",
+    fontSize: 14,
+  };
+
+  const buttonStyle: React.CSSProperties = {
+    width: "100%",
+    boxSizing: "border-box",
+    height: 44,
+    borderRadius: 12,
+    border: "1px solid #111",
+    background: "#111",
+    color: "white",
+    fontSize: 15,
+    cursor: "pointer",
+  };
 
   return (
-    <div style={{ padding: 12, height: "100%", overflow: "auto" }}>
-      <h3 style={{ marginTop: 0 }}>Search</h3>
+    <div style={{ padding: 12, height: "100%", overflow: "auto", color: "#111" }}>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <label>
-          Keyword
-          <input value={what} onChange={(e) => setWhat(e.target.value)} style={{ width: "100%" }} />
-        </label>
+        <input
+          value={what}
+          onChange={(e) => setWhat(e.target.value)}
+          placeholder="Keyword (e.g., cashier)"
+          style={inputStyle}
+        />
 
-        <label>
-          Where (for Adzuna)
-          <input value={where} onChange={(e) => setWhere(e.target.value)} style={{ width: "100%" }} />
-        </label>
+        <input
+          value={where}
+          onChange={(e) => setWhere(e.target.value)}
+          placeholder="Location (e.g., Newark, DE)"
+          style={inputStyle}
+        />
 
-        <label>
-          Radius (km)
-          <input
-            type="number"
-            value={props.radiusKm}
-            min={1}
-            max={100}
-            onChange={(e) => props.onSetRadiusKm(Number(e.target.value))}
-            style={{ width: "100%" }}
-          />
-        </label>
+        <input
+          type="number"
+          value={props.radiusKm}
+          min={1}
+          max={100}
+          step={0.1}
+          onChange={(e) => props.onSetRadiusKm(Number(e.target.value))}
+          placeholder="Radius (km)"
+          style={inputStyle}
+        />
+
+        <input
+          type="range"
+          min={1}
+          max={25}
+          step={0.1}
+          value={props.radiusKm}
+          onChange={(e) => props.onSetRadiusKm(Number(e.target.value))}
+          style={{ width: "100%" }}
+        />
+        <div style={{ fontSize: 13, marginTop: 4 }}>
+          Radius: <b>{props.radiusKm.toFixed(1)} km</b>
+        </div>
 
         <button
           onClick={() => props.onSearch(what, where)}
           disabled={!props.home}
+          style={{
+            ...buttonStyle,
+            opacity: props.home ? 1 : 0.6,
+            cursor: props.home ? "pointer" : "not-allowed",
+          }}
         >
           {props.home ? "Search nearby jobs" : "Set Home on map first"}
         </button>
@@ -56,11 +102,11 @@ export default function JobsSidebar(props: {
       {!props.loading && !props.error && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {props.jobs.map((j) => (
-            <div key={j.id} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 10 }}>
+            <div key={j.id} onClick={() => props.onSelectJob(j.id)} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 10, cursor: "pointer", outline: props.selectedJobId === j.id ? "2px solid #1f6feb" : "none", }}>
               <div style={{ fontWeight: 600 }}>{j.title}</div>
               <div style={{ fontSize: 13 }}>{j.company}</div>
               <div style={{ fontSize: 13, opacity: 0.8 }}>{j.locationText}</div>
-              <a href={j.url} target="_blank" rel="noreferrer">
+              <a href={j.url} onClick={(e) => e.stopPropagation()} target="_blank" rel="noreferrer">
                 Apply
               </a>
             </div>

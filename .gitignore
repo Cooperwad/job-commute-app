@@ -1,22 +1,16 @@
-# -----------------------
 # General
-# -----------------------
 .DS_Store
 Thumbs.db
 *.log
 *.local
 
-# -----------------------
-# VS Code / IDE
-# -----------------------
+# VS Code
 .vscode/*
 !.vscode/extensions.json
 .idea/
 .vs/
 
-# -----------------------
-# Node / frontend (Vite/React)
-# -----------------------
+# Node / frontend 
 **/node_modules/
 **/dist/
 **/dist-ssr/
@@ -24,9 +18,7 @@ Thumbs.db
 **/.env.*
 **/.vite/
 
-# -----------------------
 # .NET / backend
-# -----------------------
 **/bin/
 **/obj/
 **/*.user
@@ -35,7 +27,7 @@ Thumbs.db
 **/*.pdb
 **/*.nupkg
 
-# SQLite DB files (optional: keep ignored if you don't want DB in git)
+# SQLite DB files
 **/*.db
 **/*.db-shm
 **/*.db-wal
