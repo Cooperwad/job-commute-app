@@ -1,6 +1,7 @@
 using Data;
 using Microsoft.EntityFrameworkCore;
 using Services;
+using Api.Dto;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +24,8 @@ builder.Services.AddHttpClient<GreenhouseClient>();
 builder.Services.AddScoped<GreenhouseIngestService>();
 builder.Services.AddHttpClient<NominatimClient>();
 builder.Services.AddHttpClient("Adzuna");
+builder.Services.AddHttpClient<OrsClient>();
+builder.Services.AddHttpClient<GeminiClient>();
 
 
 builder.Services.AddScoped(sp =>
@@ -263,6 +266,61 @@ app.MapGet("/api/reversegeocode", async (double lat, double lon, NominatimClient
         displayName = r.DisplayName,
         countryCode = r.Address.CountryCode
     });
+});
+
+app.MapGet("/api/route", async (
+    double homeLat,
+    double homeLon,
+    double jobLat,
+    double jobLon,
+    string? profile,
+    OrsClient ors,
+    CancellationToken ct) =>
+{
+    var p = string.IsNullOrWhiteSpace(profile) ? "driving-car" : profile;
+
+    var route = await ors.GetRouteAsync(p, homeLat, homeLon, jobLat, jobLon, ct);
+    return Results.Ok(route);
+});
+
+app.MapPost("/api/ai/explain-jobs", async (ExplainJobsRequest req, GeminiClient gemini, CancellationToken ct) =>
+{
+    if (req.Selected == null || req.ComparedTo == null)
+        return Results.BadRequest(new { error = "selected and comparedTo are required" });
+
+    // Keep Gemini grounded. Tell it to only use provided numbers.
+    var prompt =
+$"""
+You are helping a job commute app.
+Compare two jobs for a user based on NET daily value after commute cost.
+
+Use ONLY the numbers provided. If salary or net is missing, say it is unknown.
+Write 3-5 bullet points, then one short final sentence.
+
+Assumptions:
+- Commute cost is a rough estimate and may differ from real routes.
+
+Job A (Selected):
+- Title: {req.Selected.Title}
+- Company: {req.Selected.Company}
+- Distance (km): {req.Selected.DistanceKm}
+- Salary annual (USD): {req.Selected.SalaryAnnual}
+- Commute cost daily (USD): {req.Selected.CommuteCostDaily}
+- Net daily (USD): {req.Selected.NetDaily}
+
+Job B (Compared):
+- Title: {req.ComparedTo.Title}
+- Company: {req.ComparedTo.Company}
+- Distance (km): {req.ComparedTo.DistanceKm}
+- Salary annual (USD): {req.ComparedTo.SalaryAnnual}
+- Commute cost daily (USD): {req.ComparedTo.CommuteCostDaily}
+- Net daily (USD): {req.ComparedTo.NetDaily}
+
+Question: Why might Job A be better or worse than Job B for this user?
+""";
+
+    var text = await gemini.GenerateTextAsync(prompt, ct);
+    return Results.Ok(new { text });
 });
 
 

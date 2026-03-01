@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { Circle, MapContainer, Marker, TileLayer, useMapEvents, Popup, ZoomControl } from "react-leaflet";
+import { useEffect, useMemo, useState } from "react";
+import { Circle, MapContainer, Marker, TileLayer, useMapEvents, Popup, ZoomControl, Polyline } from "react-leaflet";
 import type { LatLngLiteral } from "leaflet";
 import L from "leaflet";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
@@ -139,6 +139,47 @@ export default function MapView(props: {
     return spreadPositions(withCoords, 30);
   }, [props.jobs]);
 
+  const [routeLine, setRouteLine] = useState<[number, number][]>([]);
+  const [routeMeta, setRouteMeta] = useState<{ distanceMeters: number; durationSeconds: number } | null>(null);
+
+  useEffect(() => {
+    const run = async () => {
+      if (!props.home) return;
+
+      const job = props.jobs.find((j) => j.id === props.selectedJobId);
+      if (!job || job.lat == null || job.lon == null) {
+        setRouteLine([]);
+        setRouteMeta(null);
+        return;
+      }
+
+      const url =
+        `/api/route?homeLat=${encodeURIComponent(props.home.lat)}` +
+        `&homeLon=${encodeURIComponent(props.home.lng)}` +
+        `&jobLat=${encodeURIComponent(job.lat)}` +
+        `&jobLon=${encodeURIComponent(job.lon)}` +
+        `&profile=driving-car`;
+
+      const res = await fetch(url);
+      if (!res.ok) {
+        setRouteLine([]);
+        setRouteMeta(null);
+        return;
+      }
+
+      const data = (await res.json()) as {
+        distanceMeters: number;
+        durationSeconds: number;
+        coordinatesLatLng: [number, number][];
+      };
+
+      setRouteLine(data.coordinatesLatLng);
+      setRouteMeta({ distanceMeters: data.distanceMeters, durationSeconds: data.durationSeconds });
+    };
+
+    run();
+  }, [props.selectedJobId, props.home, props.jobs]);
+
   return (
     <div style={{ height: "100%", width: "100%", position: "relative" }}>
       <MapContainer center={center} zoom={12} zoomControl={false} style={{ height: "100%", width: "100%" }}>
@@ -146,6 +187,7 @@ export default function MapView(props: {
           attribution="&copy; OpenStreetMap contributors"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        {routeLine.length > 0 && <Polyline positions={routeLine} />}
 
         <ZoomControl position="topright" />
 

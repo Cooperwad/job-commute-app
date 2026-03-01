@@ -96,7 +96,7 @@ export default function JobsSidebar(props: {
 
         <button
           onClick={() => props.onSearch(what, where)}
-          disabled={!props.home || !what.trim()}
+          disabled={!props.home}
           style={{
             ...buttonStyle,
             opacity: props.home ? 1 : 0.6,
