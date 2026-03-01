@@ -11,6 +11,7 @@ export default function JobsSidebar(props: {
   onSearch: (what: string, where: string) => void;
   selectedJobId: string | null;
   onSelectJob: (id: string) => void;
+  useMyLocation: () => void;
 }) {
   const [what, setWhat] = useState("");
   const [where, setWhere] = useState("");
@@ -43,6 +44,18 @@ export default function JobsSidebar(props: {
     <div style={{ padding: 12, height: "100%", overflow: "auto", color: "#111" }}>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <button
+          onClick={props.useMyLocation}
+          style={{
+            ...buttonStyle,
+            background: "#fff",
+            color: "#111",
+            border: "1px solid #ddd",
+          }}
+        >
+          Use my location
+        </button>
+
         <input
           value={what}
           onChange={(e) => setWhat(e.target.value)}
@@ -83,7 +96,7 @@ export default function JobsSidebar(props: {
 
         <button
           onClick={() => props.onSearch(what, where)}
-          disabled={!props.home}
+          disabled={!props.home || !what.trim()}
           style={{
             ...buttonStyle,
             opacity: props.home ? 1 : 0.6,

@@ -75,10 +75,30 @@ export default function App() {
     }
   };
 
+  const useMyLocation = () => {
+    if (!navigator.geolocation) {
+      setError("Geolocation is not supported in this browser.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+          setHome({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          setPanelOpen(true);
+          setSelectedJobId(null);
+      },
+      (err) => {
+          setError(err.message || "Location permission denied.");
+        },
+      { enableHighAccuracy: true, timeout: 10000 }
+      );
+  };
+
+
 
   return (
-    <div style={{ height: "100vh", width: "100vw", display: "relative" }}>
-      {panelOpen && home && (
+    <div style={{ height: "100vh", width: "100vw", position: "relative" }}>
+      {panelOpen && (
         <div
           style={{
             position: "absolute",
@@ -139,6 +159,7 @@ export default function App() {
               onSearch={onSearch}
               selectedJobId={selectedJobId}
               onSelectJob={setSelectedJobId}
+              useMyLocation={useMyLocation}
             />
           </div>
         </div>
