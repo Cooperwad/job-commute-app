@@ -20,8 +20,6 @@ builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseSqlite("Data Source=jobs.db"));
 
 // HttpClient + services
-builder.Services.AddHttpClient<GreenhouseClient>();
-builder.Services.AddScoped<GreenhouseIngestService>();
 builder.Services.AddHttpClient<NominatimClient>();
 builder.Services.AddHttpClient("Adzuna");
 builder.Services.AddHttpClient<OrsClient>();
@@ -57,13 +55,6 @@ using (var scope = app.Services.CreateScope())
 
 app.MapGet("/health", () => Results.Ok(new { ok = true }));
 
-app.MapPost("/api/ingest/greenhouse", async (string board, GreenhouseIngestService ingest, CancellationToken ct) =>
-{
-    if (string.IsNullOrWhiteSpace(board)) return Results.BadRequest(new { error = "board is required" });
-
-    var (fetched, inserted, updated) = await ingest.IngestAsync(board, ct);
-    return Results.Ok(new { board, fetched, inserted, updated });
-});
 
 app.MapGet("/api/jobs", async (AppDbContext db, CancellationToken ct) =>
 {

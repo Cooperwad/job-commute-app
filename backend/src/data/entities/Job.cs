@@ -3,7 +3,7 @@ namespace Data.Entities;
 public class Job
 {
     public int Id { get; set; }                 // DB primary key
-    public string Source { get; set; } = "greenhouse";
+    public string Source { get; set; } = "adzuna";
     public string BoardToken { get; set; } = ""; // which greenhouse board
     public int SourceJobId { get; set; }         // greenhouse job id
 
